@@ -14,7 +14,6 @@ const predictHandler = async (request, h) => {
         }).code(400);
     }
 
-    // Check if image size exceeds 1MB
     if (image.bytes > 1_000_000) {
         return h.response({
             status: 'fail',
@@ -49,7 +48,7 @@ const predictHandler = async (request, h) => {
             console.error('Input error:', error.message);
             return h.response({
                 status: 'fail',
-                message: error.message, // Return specific error message for InputError
+                message: error.message,
             }).code(400);
         } else {
             console.error('Prediction error:', error.message);
@@ -61,6 +60,4 @@ const predictHandler = async (request, h) => {
     }
 };
 
-module.exports = {
-    predictHandler,
-};
+module.exports = {predictHandler};

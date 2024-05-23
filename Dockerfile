@@ -1,9 +1,19 @@
 FROM node:20
-WORKDIR /usr/src/app
-COPY package*.json ./
-RUN npm install
-COPY . .
-EXPOSE 3000
-ENV MODEL_URL=https://storage.googleapis.com/submission-mlgc-juanda/submissions-model/model.json
-CMD ["npm", "start"]
 
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm install
+
+COPY . .
+
+COPY config/service.json /app/config/service.json
+
+EXPOSE 3000
+
+ENV GOOGLE_APPLICATION_CREDENTIALS="/app/config/service.json"
+
+ENV APP_ENV = "local"
+
+CMD ["npm", "start"]

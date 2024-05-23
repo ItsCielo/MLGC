@@ -3,7 +3,6 @@ require('dotenv').config();
 const Hapi = require('@hapi/hapi');
 const routes = require('../server/routes');
 const loadModel = require('../services/loadModel');
-const InputError = require('../exceptions/InputError');
 
 (async () => {
     const isLocal = process.env.APP_ENV === 'local';
@@ -20,30 +19,28 @@ const InputError = require('../exceptions/InputError');
         },
     });
 
-    const model = await loadModel();
-    server.app.model = model;
+    try {
+        console.log('Initializing model...');
+        const model = await loadModel();
+        server.app.model = model; 
+        console.log('Model initialized and attached to server.');
+    } catch (error) {
+        console.error('Failed to load model:', error);
+        process.exit(1);
+    }
 
     server.route(routes);
 
-    server.ext('onPreResponse', function (request, h) {
+    server.ext('onPreResponse', (request, h) => {
         const response = request.response;
-
-        if (response instanceof InputError) {
-            const newResponse = h.response({
-                status: 'fail',
-                message: `${response.message} Silakan gunakan foto lain.`
-            })
-            newResponse.code(response.statusCode)
-            return newResponse;
-        }
 
         if (response.isBoom) {
             const statusCode = response.output.payload.statusCode || 500;
             const newResponse = h.response({
                 status: 'fail',
                 message: response.message
-            })
-            newResponse.code(response.output.statusCode)
+            });
+            newResponse.code(statusCode);
             return newResponse;
         }
 
@@ -51,5 +48,5 @@ const InputError = require('../exceptions/InputError');
     });
 
     await server.start();
-    console.log(`Server start at: ${server.info.uri}`);
+    console.log(`Server started at: ${server.info.uri}`);
 })();
