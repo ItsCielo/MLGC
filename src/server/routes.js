@@ -1,5 +1,5 @@
 const { predictHandler } = require('./handler');
-const getPredictionHistories = require('../services/predictionHistoryService'); // Import the new function
+const getPredictionHistories = require('../services/predictionHistoryService');
 
 const routes = [
     {

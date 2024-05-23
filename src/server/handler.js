@@ -36,7 +36,7 @@ const predictHandler = async (request, h) => {
             createdAt: new Date().toISOString(),
         };
 
-        await storePrediction(image._data, prediction);
+        await storePrediction(prediction.id, prediction);
 
         return h.response({
             status: 'success',
