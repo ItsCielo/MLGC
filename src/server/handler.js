@@ -1,33 +1,66 @@
-const predictClassification = require('../services/inferenceService');
-const crypto = require('crypto');
-const storeData = require('../services/storeData');
+const ClientError = require("../exceptions/ClientError");
+const InputError = require("../exceptions/InputError");
+const { makePrediction } = require('../services/inferenceService');
+const storePrediction = require('../services/storeData');
+const { v4: uuidv4 } = require('uuid');
 
-async function postPredictHandler(request, h) {
-  const { image } = request.payload;
-  const { model } = request.server.app;
+const predictHandler = async (request, h) => {
+    const { image } = request.payload;
 
-  const { confidenceScore, label, explanation, suggestion } = await predictClassification(model, image);
-  const id = crypto.randomUUID();
-  const createdAt = new Date().toISOString();
+    if (!image) {
+        return h.response({
+            status: 'fail',
+            message: 'Image is required',
+        }).code(400);
+    }
 
-  const data = {
-    "id": id,
-    "result": label,
-    "explanation": explanation,
-    "suggestion": suggestion,
-    "confidenceScore": confidenceScore,
-    "createdAt": createdAt
-  }
+    // Check if image size exceeds 1MB
+    if (image.bytes > 1_000_000) {
+        return h.response({
+            status: 'fail',
+            message: 'Payload content length greater than maximum allowed: 1000000',
+        }).code(413);
+    }
 
-  await storeData(id,data);
+    try {
+        const model = request.server.app.model;
+        const predictionResult = await makePrediction(model, image._data);
+        console.log('Prediction result:', predictionResult);
 
-  const response = h.response({
-    status: 'success',
-    message: confidenceScore > 99 ? 'Model is predicted successfully.' : 'Model is predicted successfully but under threshold. Please use the correct picture',
-    data
-  })
-  response.code(201);
-  return response;
-}
+        const result = predictionResult === 1 ? 'Cancer' : 'Non-cancer';
+        const suggestion = result === 'Cancer' ? 'Segera periksa ke dokter!' : 'Tetap jaga kesehatan kulit Anda.';
 
-module.exports = postPredictHandler;
+        const prediction = {
+            id: uuidv4(),
+            result: result,
+            suggestion: suggestion,
+            createdAt: new Date().toISOString(),
+        };
+
+        await storePrediction(image._data, prediction);
+
+        return h.response({
+            status: 'success',
+            message: 'Model is predicted successfully',
+            data: prediction,
+        }).code(201);
+    } catch (error) {
+        if (error instanceof InputError) {
+            console.error('Input error:', error.message);
+            return h.response({
+                status: 'fail',
+                message: error.message, // Return specific error message for InputError
+            }).code(400);
+        } else {
+            console.error('Prediction error:', error.message);
+            return h.response({
+                status: 'fail',
+                message: 'Terjadi kesalahan dalam melakukan prediksi',
+            }).code(400);
+        }
+    }
+};
+
+module.exports = {
+    predictHandler,
+};

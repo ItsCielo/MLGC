@@ -6,12 +6,16 @@ const loadModel = require('../services/loadModel');
 const InputError = require('../exceptions/InputError');
 
 (async () => {
+    const isLocal = process.env.APP_ENV === 'local';
+    const host = isLocal ? 'localhost' : '0.0.0.0';
+    const port = isLocal ? 3000 : 8080;
+
     const server = Hapi.server({
-        port: process.env.PORT,
-        host: '0.0.0.0',
+        port: port,
+        host: host,
         routes: {
             cors: {
-              origin: ['*'],
+                origin: ['*'],
             },
         },
     });
@@ -34,6 +38,7 @@ const InputError = require('../exceptions/InputError');
         }
 
         if (response.isBoom) {
+            const statusCode = response.output.payload.statusCode || 500;
             const newResponse = h.response({
                 status: 'fail',
                 message: response.message

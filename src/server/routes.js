@@ -1,17 +1,21 @@
-const postPredictHandler = require('../server/handler');
+const { predictHandler } = require('./handler');
+const getPredictionHistories = require('../services/predictionHistoryService'); // Import the new function
 
 const routes = [
-  {
-    path: '/predict',
-    method: 'POST',
-    handler: postPredictHandler,
-    options: {
-      payload: {
-        allow: 'multipart/form-data',
-        multipart: true
-      }
-    }
-  }
-]
+    {
+        method: 'POST',
+        path: '/predict',
+        handler: predictHandler,
+        options: {
+            payload: {
+                output: 'stream',
+                parse: true,
+                allow: 'multipart/form-data',
+                maxBytes: 1000000,
+                multipart: true,
+            },
+        },
+    },
+];
 
 module.exports = routes;
